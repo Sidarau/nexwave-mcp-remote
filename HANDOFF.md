@@ -43,7 +43,12 @@ sketchyrides.com, verify_oauth 11/11 incl. scope-filtered tools/list).
 ## Remaining (in order)
 
 1. ~~Fix + local green~~ ✅ DONE.
-2. **Deploy to Fly.** `export FLY_API_TOKEN=$(/opt/homebrew/bin/noxkey get --raw zeuglab/fly/FLY_API_TOKEN)`.
+2. **Deploy to Fly — BLOCKED ON HUMAN: Fly auth.** The NoxKey
+   `zeuglab/fly/FLY_API_TOKEN` is STALE (Fly API 401 on whoami) and
+   ~/.fly/config.yml holds no working token. Alex must run
+   `flyctl auth login` (interactive browser) in a terminal, or mint a fresh
+   token (fly.io → account → tokens) and `noxkey set zeuglab/fly/FLY_API_TOKEN`.
+   Once `flyctl auth whoami` succeeds, do NOT ask again — proceed:
    `fly apps create nexwave-mcp` (tolerate "already exists"), then
    `fly secrets set NEXWAVE_API_KEY=<same key> NEXWAVE_BASE_URL=https://nexwave-mcp.fly.dev 'NEXWAVE_OAUTH_PROFILES=<GENERATE fresh strong secrets — NOT the test ones>'`,
    then `fly deploy`. NEVER print secret values to logs.
@@ -51,21 +56,13 @@ sketchyrides.com, verify_oauth 11/11 incl. scope-filtered tools/list).
 3. **Verify live.** Both verify scripts against `https://nexwave-mcp.fly.dev`
    (set VERIFY_OWNER_PASS/VERIFY_OPS_PASS to the real profile secrets).
    Also curl the landing page.
-4. **Ops bridge PR (platform repo).** Codex owns the nexwave-platform working
-   tree (dirty, branch codex/sketchyrides-growth-ui) — DO NOT touch it.
-   `git worktree add /tmp/nxw-ops-bridge -b enki/v1-ops-bridge origin/main`.
-   Add `apps/web/src/app/api/v1/ops/state/route.ts` (GET → adminState-shaped
-   snapshot, bearer-gated via existing `apiKeyOk`/`apiKeyConfigured` from
-   `@/lib/api-v1`) and `apps/web/src/app/api/v1/ops/vehicle/route.ts` (POST
-   {slug, dailyRateCents?, hidden?, name?, description?} → narrow mutate via
-   mutatePilotState/mutateAdmin pattern from api/admin/state/route.ts).
-   Add tests mirroring api-v1.test.ts. Run `npm test` for the web workspace +
-   typecheck (full output + exit code — never piped tails). Push branch, open
-   PR with `gh pr create` — DO NOT merge; Codex/Alex merge. Evidence in PR body.
-5. **README + closeout.** README install kit (Claude `claude mcp add`,
-   Codex `[mcp_servers.sketchyrides]`, ChatGPT connector URL, Cursor) — see
-   landing page copy. Comment ZEUG-663 with live evidence (verify outputs, fly
-   URL, PR link), move to In Review. Kill the cron loop on completion.
+4. ~~Ops bridge PR~~ ✅ DONE: https://github.com/Sidarau/nexwave-platform/pull/4
+   (branch enki/v1-ops-bridge, clean worktree off origin/main; typecheck exit 0,
+   web suite 153/153 incl. 4 new). NOT merged — Codex/Alex merges.
+   MCP repo pushed: https://github.com/Sidarau/nexwave-mcp-remote
+5. **README + closeout.** README install kit ✅ done in repo. Remaining:
+   comment ZEUG-663 with live evidence (verify outputs, fly URL, PR link),
+   move to In Review. Kill the cron loop on completion.
 
 ## Hard rules for the loop
 
