@@ -72,4 +72,14 @@ fly deploy
 `min_machines_running = 1` is deliberate: OAuth state is in-memory, and
 idle auto-stop would wipe DCR registrations mid-flow.
 
+## Registry (plugin-store discovery)
+
+`server.json` is the official MCP registry manifest. Once the Fly deploy is
+live and verified, publish with the registry CLI (`mcp-publisher`, GitHub
+auth — the `io.github.sidarau/*` namespace is tied to the GitHub account):
+
+```bash
+mcp-publisher publish   # from this repo
+```
+
 — Enki · ZEUG-663
