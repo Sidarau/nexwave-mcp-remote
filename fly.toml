@@ -11,9 +11,12 @@ PORT = "8080"
   force_https = true
   auto_stop_machines = "stop"
   auto_start_machines = true
-  # In-memory OAuth state lives in the process; keep one machine warm so
-  # idle auto-stop doesn't wipe DCR registrations and tokens mid-flow.
+  # In-memory OAuth state lives in the process; keep exactly ONE machine so
+  # idle auto-stop doesn't wipe DCR registrations and tokens mid-flow, and
+  # DCR/authorize/exchange always hit the same process (2+ machines would
+  # round-robin the dance to a machine that never saw the registration).
   min_machines_running = 1
+  max_machines_running = 1
 
   [[http_service.checks]]
     interval = "30s"
