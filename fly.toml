@@ -1,0 +1,28 @@
+app = "nexwave-mcp"
+primary_region = "sjc"
+
+[build]
+
+[env]
+PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = "stop"
+  auto_start_machines = true
+  # In-memory OAuth state lives in the process; keep one machine warm so
+  # idle auto-stop doesn't wipe DCR registrations and tokens mid-flow.
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "10s"
+    method = "GET"
+    path = "/healthz"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

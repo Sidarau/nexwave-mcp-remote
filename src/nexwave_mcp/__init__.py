@@ -1,0 +1,1 @@
+"""nexwave-mcp-remote package."""
