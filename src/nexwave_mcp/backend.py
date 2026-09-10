@@ -14,6 +14,7 @@ from __future__ import annotations
 import os
 import re
 import time
+import urllib.parse
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from typing import Any
@@ -62,15 +63,38 @@ class NexwaveAPI:
     async def quote(self, car: str, start: str, end: str, plan: str = "full") -> Any:
         return await self._get("/api/v1/quote", {"car": car, "start": start, "end": end, "plan": plan})
 
+    async def _post(self, path: str, payload: dict[str, Any]) -> Any:
+        r = await self.client().post(path, json=payload)
+        if r.status_code not in (200, 201):
+            raise ApiError(r.status_code, r.text[:300])
+        return r.json()
+
+    async def _patch(self, path: str, payload: dict[str, Any]) -> Any:
+        r = await self.client().patch(path, json=payload)
+        if r.status_code != 200:
+            raise ApiError(r.status_code, r.text[:300])
+        return r.json()
+
     # ---- operator bridge (ships with the platform PR; absent → ApiError 404)
     async def ops_state(self) -> Any:
         return await self._get("/api/v1/ops/state")
 
     async def ops_set_vehicle(self, slug: str, fields: dict[str, Any]) -> Any:
-        r = await self.client().post("/api/v1/ops/vehicle", json={"slug": slug, **fields})
-        if r.status_code not in (200, 201):
-            raise ApiError(r.status_code, r.text[:300])
-        return r.json()
+        return await self._post("/api/v1/ops/vehicle", {"slug": slug, **fields})
+
+    async def ops_create_trip(self, payload: dict[str, Any]) -> Any:
+        return await self._post("/api/v1/ops/trips", payload)
+
+    async def ops_modify_trip(self, booking_id: str, fields: dict[str, Any]) -> Any:
+        bid = urllib.parse.quote(booking_id, safe="")
+        return await self._patch(f"/api/v1/ops/trips/{bid}", fields)
+
+    async def ops_cancel_trip(self, booking_id: str, reason: str = "") -> Any:
+        bid = urllib.parse.quote(booking_id, safe="")
+        return await self._post(f"/api/v1/ops/trips/{bid}/cancel", {"reason": reason})
+
+    async def ops_send_comms(self, payload: dict[str, Any]) -> Any:
+        return await self._post("/api/v1/ops/comms", payload)
 
 
 # --------------------------------------------------------------------------

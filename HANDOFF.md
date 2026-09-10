@@ -42,3 +42,22 @@ This loop is done — completion cron job `dd40e3d2a460` removed. No further act
 - NoxKey Touch ID / `STRIPE_*` planting on sketchyrides.com (Nexwave human lane,
   separate workstream).
 - Disabled cron `nexwave-verification-stack-research` (41cd9858f87f) left as-is.
+
+## ZEUG-666 — ops trip writes + renter comms (MCP side)
+
+- Four new owner-tier (`ops:write`) tools on `/ops/mcp`: `ops_create_trip`,
+  `ops_modify_trip`, `ops_cancel_trip`, `ops_send_comms` — backed by new
+  `NexwaveAPI.ops_create_trip / ops_modify_trip / ops_cancel_trip /
+  ops_send_comms` methods against the platform bridge (`POST/PATCH
+  /api/v1/ops/trips*`, `POST /api/v1/ops/comms`).
+- **Bridge endpoints 404 until the ZEUG-666 platform PR deploys** — tools
+  return the friendly "bridge not deployed yet" string, same as the
+  ZEUG-663 reads did pre-merge.
+- Verify locally: run the server with test profiles, then
+  `scripts/verify_http.py` (public, unchanged) and `scripts/verify_oauth.py`
+  (scope checks now cover all five write tools).
+- Full lifecycle check once the platform bridge is live:
+  `.venv/bin/python scripts/verify_ops_writes.py <base-url>` — creates a
+  2027-03 trip ("MCP Verify"), asserts state visibility, quote-delta math
+  on modify, comms rendering (dry-run ok), full-refund cancel, and that the
+  read-only ops profile is rejected on write calls.

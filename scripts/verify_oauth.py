@@ -7,8 +7,8 @@ dance a client performs, adapted from zme-mcp scripts/verify_oauth.py.
   4. POST /authorize         → bad key rejected (no code leak), good key → code
   5. POST /token (PKCE S256) → access token carries the profile's scopes
   6. MCP initialize with token → 200 ; without token → 401
-  7. ops-profile token calls ops_set_vehicle → scope-denied
-     owner token lists tools → ops tools present
+  7. ops-profile token lists tools → read tools only (all five write tools
+     hidden); owner token lists tools → every ops tool present
 
 Usage:
   NEXWAVE_OAUTH_PROFILES='{"alex":{"secret":"s3cret","level":"owner"},
@@ -29,6 +29,8 @@ import httpx
 BASE = (sys.argv[1] if len(sys.argv) > 1 else "http://127.0.0.1:8378").rstrip("/")
 OWNER_PASS = os.environ.get("VERIFY_OWNER_PASS", "s3cret")
 OPS_PASS = os.environ.get("VERIFY_OPS_PASS", "viewonly")
+WRITE_TOOLS = ["ops_set_vehicle", "ops_create_trip", "ops_modify_trip",
+               "ops_cancel_trip", "ops_send_comms"]
 failures = 0
 
 
@@ -143,21 +145,23 @@ def main() -> int:
             "clientInfo": {"name": "verify", "version": "0"}})
         check("ops MCP without token → 401", r.status_code == 401, str(r.status_code))
 
-        # scope enforcement: read-only profile must not see the write tool
+        # scope enforcement: read-only profile must not see the write tools
         sh = session(client, ops_token)
         lst = client.post(f"{BASE}/ops/mcp", headers=sh, json={
             "jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         names = [t["name"] for t in parse_body(lst).get("result", {}).get("tools", [])]
         check("ops profile sees read tools",
               "ops_overview" in names and "ops_bookings" in names, str(names))
-        check("ops profile does NOT see ops_set_vehicle",
-              "ops_set_vehicle" not in names, str(names))
+        check("ops profile does NOT see write tools",
+              all(t not in names for t in WRITE_TOOLS), str(names))
 
         sh = session(client, owner_token)
         lst = client.post(f"{BASE}/ops/mcp", headers=sh, json={
             "jsonrpc": "2.0", "id": 2, "method": "tools/list"})
         names = [t["name"] for t in parse_body(lst).get("result", {}).get("tools", [])]
-        check("owner sees all ops tools", "ops_set_vehicle" in names, str(names))
+        check("owner sees all ops tools",
+              all(t in names for t in
+                  ["ops_overview", "ops_bookings", *WRITE_TOOLS]), str(names))
 
     print("\n" + ("ALL PASS" if failures == 0 else f"{failures} FAILURES"))
     return 1 if failures else 0
