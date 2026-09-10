@@ -30,6 +30,11 @@ This loop is done — completion cron job `dd40e3d2a460` removed. No further act
 - Deploy had already happened (Alex's main session) despite local `flyctl auth
   whoami` still failing — check `curl https://nexwave-mcp.fly.dev/healthz`
   before assuming the Fly-auth blocker still holds.
+- 2026-09-10: `verify_http.py` (fastmcp `Client`) hung >4min with zero output
+  against the LIVE URL while `verify_oauth.py` (httpx) passed 11/11 in seconds
+  and Codex's rmcp client served real `fleet_list` calls — i.e. a client-side
+  fastmcp/beartype stall, not a server fault. If the live URL answers
+  /healthz + OAuth, suspect the local fastmcp import before suspecting Fly.
 
 ## What is NOT done (out of scope, by design)
 
