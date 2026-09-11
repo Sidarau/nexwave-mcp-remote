@@ -1,9 +1,10 @@
 <!-- Enki fingerprint -->
-# nexwave-mcp-remote — Sketchy Rides as an MCP plugin
+# nexwave-mcp-remote — Try Day Club as an MCP plugin
 
 **Rent cars with your AI. Manage the fleet with your AI.** Two streamable-HTTP
-MCP servers for the [Sketchy Rides](https://sketchyrides.com) LA rental pilot
-(Nexwave platform), one Fly.io machine, scale-to-zero.
+MCP servers for [Try Day Club](https://trydayclub.com), the LA rental club
+(booking engine currently at [sketchyrides.com](https://sketchyrides.com) until
+the domain cutover), one Fly.io machine, scale-to-zero.
 
 | Surface | URL | Auth | Who |
 |---|---|---|---|
@@ -14,12 +15,12 @@ MCP servers for the [Sketchy Rides](https://sketchyrides.com) LA rental pilot
 
 **Claude Code / Desktop**
 ```bash
-claude mcp add --transport http sketchyrides https://nexwave-mcp.fly.dev/mcp
+claude mcp add --transport http trydayclub https://nexwave-mcp.fly.dev/mcp
 ```
 
 **Codex** (`~/.codex/config.toml`)
 ```toml
-[mcp_servers.sketchyrides]
+[mcp_servers.trydayclub]
 url = "https://nexwave-mcp.fly.dev/mcp"
 ```
 

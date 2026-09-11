@@ -1,4 +1,7 @@
-"""nexwave-mcp-remote — Sketchy Rides / Nexwave as MCP servers (ZEUG-663).
+"""nexwave-mcp-remote — Try Day Club (trydayclub.com) as MCP servers (ZEUG-663).
+
+Brand: Try Day Club. Booking engine currently serves sketchyrides.com until
+the domain cutover.
 
 Two servers, one process, one Fly.io machine:
 
@@ -38,27 +41,28 @@ WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False,
                         idempotent_hint=False, open_world_hint=True)
 
 PUBLIC_INSTRUCTIONS = """\
-Sketchy Rides is a Los Angeles car-rental pilot. Use fleet_list to see the
-cars with live rates and booking URLs, availability_check before promising
-dates, and quote_trip for exact checkout math (rate + insurance + CA tax +
-deposit hold). Use search/fetch to answer questions from the site's pages —
-rental terms, destination guides, blog posts — and cite the URLs. Note the
-checkout currently runs in Stripe test / ABI demo mode: never represent a
-demo transaction as a live rental or issued insurance."""
+Try Day Club is a Los Angeles car-rental club (trydayclub.com). Use
+fleet_list to see the cars with live rates and booking URLs,
+availability_check before promising dates, and quote_trip for exact
+checkout math (rate + insurance + CA tax + deposit hold). Use search/fetch
+to answer questions from the site's pages — rental terms, destination
+guides, blog posts — and cite the URLs. Note the checkout currently runs in
+Stripe test / ABI demo mode: never represent a demo transaction as a live
+rental or issued insurance."""
 
 OPS_INSTRUCTIONS = """\
-Sketchy Rides operator console for AI agents. ops_overview gives fleet +
+Try Day Club operator console for AI agents. ops_overview gives fleet +
 booking state, ops_bookings lists trips, ops_set_vehicle applies narrow
 fleet edits (rate, hidden, name, description). Reads first; confirm with
 the human before any write."""
 
 
 def build_public_server() -> FastMCP:
-    mcp = FastMCP(name="sketchyrides", instructions=PUBLIC_INSTRUCTIONS)
+    mcp = FastMCP(name="trydayclub", instructions=PUBLIC_INSTRUCTIONS)
 
     @mcp.tool(annotations=READ_ONLY)
     async def fleet_list() -> dict[str, Any]:
-        """List the current published Sketchy Rides LA fleet: daily rates,
+        """List the current published Try Day Club LA fleet: daily rates,
         mileage terms, photos, and booking URLs."""
         return await api().fleet()
 
@@ -79,7 +83,7 @@ def build_public_server() -> FastMCP:
 
     @mcp.tool(annotations=READ_ONLY)
     async def search(query: str) -> dict[str, Any]:
-        """Search the public Sketchy Rides site — rental terms, fleet pages,
+        """Search the public Try Day Club site — rental terms, fleet pages,
         destination guides, blog posts. Returns {results: [{id, title, url}]};
         call fetch(id) for the full page text."""
         idx = site_index()
@@ -105,7 +109,7 @@ def build_ops_server(base_url: str) -> FastMCP:
     from .auth import build_ops_auth
 
     provider = build_ops_auth(base_url)
-    mcp = FastMCP(name="sketchyrides-ops", instructions=OPS_INSTRUCTIONS, auth=provider)
+    mcp = FastMCP(name="trydayclub-ops", instructions=OPS_INSTRUCTIONS, auth=provider)
 
     def _err(e: Exception) -> str:
         if isinstance(e, ApiError) and e.status == 404:
@@ -161,7 +165,7 @@ def build_ops_server(base_url: str) -> FastMCP:
 
 
 LANDING = """<!doctype html><html><head><meta charset="utf-8">
-<title>Sketchy Rides · MCP</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Try Day Club · MCP</title><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{font-family:ui-sans-serif,system-ui;background:#f6f7f9;color:#101828;margin:0;padding:3rem 1.25rem}
 main{max-width:640px;margin:0 auto}h1{font-size:1.4rem;margin:0 0 .25rem}
 p,li{font-size:.9rem;color:#475467;line-height:1.55}code,pre{background:#eef2f6;border-radius:6px;font-size:.82rem}
@@ -170,14 +174,14 @@ h2{font-size:.95rem;margin:2rem 0 .4rem}.tag{display:inline-block;background:#15
 border-radius:999px;padding:.15rem .6rem;font-size:.7rem;font-weight:600;letter-spacing:.05em}</style></head>
 <body><main>
 <span class="tag">MCP · AI-NATIVE RENTAL</span>
-<h1>Sketchy Rides for agents</h1>
+<h1>Try Day Club for agents</h1>
 <p>Add one connector and your AI can shop the LA fleet, quote a trip, and read
 every page of the site. Operators get a second, sign-in-gated connector that
 manages the fleet.</p>
 <h2>Renters &amp; agents — public connector (no sign-in)</h2>
 <pre>URL: {base}/mcp</pre>
-<p><b>Claude:</b> <code>claude mcp add --transport http sketchyrides {base}/mcp</code><br>
-<b>Codex:</b> <code>[mcp_servers.sketchyrides] url = "{base}/mcp"</code><br>
+<p><b>Claude:</b> <code>claude mcp add --transport http trydayclub {base}/mcp</code><br>
+<b>Codex:</b> <code>[mcp_servers.trydayclub] url = "{base}/mcp"</code><br>
 <b>ChatGPT:</b> Settings → Connectors → + → paste the URL (deep research: search + fetch are built in)</p>
 <h2>Operators — fleet management (OAuth sign-in)</h2>
 <pre>URL: {base}/ops/mcp</pre>
@@ -236,7 +240,7 @@ def main() -> None:
     import argparse
 
     p = argparse.ArgumentParser(prog="nexwave-mcp",
-                                description="Sketchy Rides / Nexwave MCP servers")
+                                description="Try Day Club / Nexwave MCP servers")
     p.add_argument("--http", action="store_true")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8000))
