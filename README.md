@@ -8,24 +8,24 @@ the domain cutover), one Fly.io machine, scale-to-zero.
 
 | Surface | URL | Auth | Who |
 |---|---|---|---|
-| Renter / public | `https://nexwave-mcp.fly.dev/mcp` | none | anyone's agent |
-| Operator | `https://nexwave-mcp.fly.dev/ops/mcp` | OAuth 2.1 login gate | fleet operator |
+| Renter / public | `https://trydayclub-mcp.fly.dev/mcp` | none | anyone's agent |
+| Operator | `https://trydayclub-mcp.fly.dev/ops/mcp` | OAuth 2.1 login gate | fleet operator |
 
 ## Add it to your harness
 
 **Claude Code / Desktop**
 ```bash
-claude mcp add --transport http trydayclub https://nexwave-mcp.fly.dev/mcp
+claude mcp add --transport http trydayclub https://trydayclub-mcp.fly.dev/mcp
 ```
 
 **Codex** (`~/.codex/config.toml`)
 ```toml
 [mcp_servers.trydayclub]
-url = "https://nexwave-mcp.fly.dev/mcp"
+url = "https://trydayclub-mcp.fly.dev/mcp"
 ```
 
 **ChatGPT** — Settings → Connectors → Developer mode → **+** → paste
-`https://nexwave-mcp.fly.dev/mcp`. Deep research works out of the box
+`https://trydayclub-mcp.fly.dev/mcp`. Deep research works out of the box
 (`search` + `fetch` follow the compat schema).
 
 **Cursor** — Settings → MCP → new server → the same URL.
@@ -65,7 +65,7 @@ with no `--http` serves the public tools.
 
 ```bash
 fly apps create nexwave-mcp
-fly secrets set NEXWAVE_API_KEY=… NEXWAVE_BASE_URL=https://nexwave-mcp.fly.dev \
+fly secrets set NEXWAVE_API_KEY=… NEXWAVE_BASE_URL=https://trydayclub-mcp.fly.dev \
   'NEXWAVE_OAUTH_PROFILES={…}'   # generate fresh secrets, never the test ones
 fly deploy
 ```

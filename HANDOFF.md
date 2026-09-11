@@ -6,11 +6,11 @@ This loop is done — completion cron job `dd40e3d2a460` removed. No further act
 
 ## Final verified state
 
-- **Remote MCP live:** https://nexwave-mcp.fly.dev (app `nexwave-mcp`, Fly.io sjc).
+- **Remote MCP live:** https://trydayclub-mcp.fly.dev (app `nexwave-mcp`, Fly.io sjc).
   Landing + `/healthz` 200. OAuth secrets on Fly match NoxKey
   `zeuglab/nexwave/MCP_OAUTH_PROFILES`.
-- **`scripts/verify_http.py https://nexwave-mcp.fly.dev` → ALL PASS (10/10)**.
-- **`scripts/verify_oauth.py https://nexwave-mcp.fly.dev` → ALL PASS (11/11)**
+- **`scripts/verify_http.py https://trydayclub-mcp.fly.dev` → ALL PASS (10/10)**.
+- **`scripts/verify_oauth.py https://trydayclub-mcp.fly.dev` → ALL PASS (11/11)**
   (owner + ops dances, scope-filtered tools/list, 401 without token).
 - **Ops bridge PR:** https://github.com/Sidarau/nexwave-platform/pull/4
   (`enki/v1-ops-bridge`, clean worktree, typecheck 0, web 153/153). OPEN,
@@ -28,7 +28,7 @@ This loop is done — completion cron job `dd40e3d2a460` removed. No further act
   indexed venv; warm cache → 1.8s. If a verify run "hangs" right after a fresh
   venv, warm the import once before concluding failure.
 - Deploy had already happened (Alex's main session) despite local `flyctl auth
-  whoami` still failing — check `curl https://nexwave-mcp.fly.dev/healthz`
+  whoami` still failing — check `curl https://trydayclub-mcp.fly.dev/healthz`
   before assuming the Fly-auth blocker still holds.
 - 2026-09-10: `verify_http.py` (fastmcp `Client`) hung >4min with zero output
   against the LIVE URL while `verify_oauth.py` (httpx) passed 11/11 in seconds

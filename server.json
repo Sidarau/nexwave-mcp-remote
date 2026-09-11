@@ -11,7 +11,7 @@
   "remotes": [
     {
       "type": "streamable-http",
-      "url": "https://nexwave-mcp.fly.dev/mcp"
+      "url": "https://trydayclub-mcp.fly.dev/mcp"
     }
   ]
 }

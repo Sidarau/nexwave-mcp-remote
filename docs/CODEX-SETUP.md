@@ -40,11 +40,11 @@ until it passes.
    ```toml
    # Try Day Club — public fleet/quote tools (no sign-in)
    [mcp_servers.trydayclub]
-   url = "https://nexwave-mcp.fly.dev/mcp"
+   url = "https://trydayclub-mcp.fly.dev/mcp"
 
    # Try Day Club — operator console (sign-in)
    [mcp_servers.trydayclub-ops]
-   url = "https://nexwave-mcp.fly.dev/ops/mcp"
+   url = "https://trydayclub-mcp.fly.dev/ops/mcp"
    ```
 
 ✓ Check: `codex mcp list` shows `trydayclub` and `trydayclub-ops`, both `enabled`.
@@ -107,11 +107,11 @@ quote. If it does, you're live.
 ## Bonus: same plugin in ChatGPT (phone works)
 
 1. ChatGPT → Settings → Connectors → enable **Developer mode**.
-2. Connectors → **+** → URL: `https://nexwave-mcp.fly.dev/ops/mcp` → Create.
+2. Connectors → **+** → URL: `https://trydayclub-mcp.fly.dev/ops/mcp` → Create.
 3. Sign in with the same operator name + key when the page opens.
 4. New chat → "Using Try Day Club, show this week's bookings."
 
 The public version (no sign-in, read-only) is
-`https://nexwave-mcp.fly.dev/mcp` — safe to give to anyone.
+`https://trydayclub-mcp.fly.dev/mcp` — safe to give to anyone.
 
 — Enki · ZEUG-663

@@ -1,4 +1,4 @@
-app = "nexwave-mcp"
+app = "trydayclub-mcp"
 primary_region = "sjc"
 
 [build]
