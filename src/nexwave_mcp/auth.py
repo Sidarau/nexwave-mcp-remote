@@ -31,7 +31,7 @@ def _scopes_for(profile: dict[str, str]) -> list[str]:
 ALL_SCOPES = ["ops:read", "ops:write"]
 
 LOGIN_PAGE = """<!doctype html><html><head><meta charset="utf-8">
-<title>Sketchy Rides · operator</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Try Day Club · operator</title><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{{font-family:ui-sans-serif,system-ui;background:#f6f7f9;color:#101828;
 display:grid;place-items:center;height:100vh;margin:0}}
 form{{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:2rem;width:320px;display:grid;gap:.9rem}}
@@ -42,11 +42,11 @@ button{{background:#101828;border:0;border-radius:8px;color:#fff;padding:.7rem;f
 letter-spacing:.06em;cursor:pointer}}button:hover{{background:#1570ef}}
 .err{{color:#b42318;font-size:.8rem}}</style></head>
 <body><form method="post">
-<h1>SKETCHY RIDES · FLEET OPS</h1>
-<p>{client} is requesting operator access. Sign in with your operator name and key.</p>
+<h1>TRY DAY CLUB · FLEET OPS</h1>
+<p>{client} is requesting operator access. Sign in with your Try Day Club operator email and password.</p>
 {error}
-<input type="text" name="name" placeholder="operator name" autocomplete="username" required>
-<input type="password" name="passphrase" placeholder="operator key" autocomplete="current-password" required>
+<input type="text" name="name" placeholder="operator email" autocomplete="username" required>
+<input type="password" name="passphrase" placeholder="password" autocomplete="current-password" required>
 {hidden}
 <button type="submit">OPEN FLEET OPS</button></form></body></html>"""
 
@@ -115,15 +115,38 @@ class OpsOAuthProvider(InMemoryOAuthProvider):
         return self._page(dict(request.query_params), error="")
 
     async def _authorize_post(self, request: Request) -> Any:
+        from .backend import ApiError, api
+
         form = await request.form()
         q = {k: str(v) for k, v in form.items()
              if k not in ("name", "passphrase", "csrf") and isinstance(v, str)}
         name = str(form.get("name", "")).strip().lower()
         secret = str(form.get("passphrase", ""))
-        profile = self.profiles.get(name)
+        bad = '<span class="err">Wrong operator email or password.</span>'
 
-        if not profile or profile["secret"] != secret:
-            return self._page(q, error='<span class="err">Unknown operator name or bad key.</span>')
+        # Platform is the identity source of truth (ZEUG-667): verify against
+        # real operator accounts. 404/unreachable = bridge not deployed yet →
+        # legacy shared-key fallback keeps working during the transition.
+        level: str | None = None
+        try:
+            res = await api().ops_auth_verify(name, secret)
+            if res.get("role") == "operator":
+                level = "owner"
+            else:
+                return self._page(q, error=bad)
+        except ApiError as e:
+            if e.status == 401:
+                return self._page(q, error=bad)
+            if e.status != 404:
+                return self._page(q, error='<span class="err">Sign-in unavailable — try again shortly.</span>')
+        except Exception:  # noqa: BLE001 — network hiccup → legacy fallback
+            pass
+
+        if level is None:
+            profile = self.profiles.get(name)
+            if not profile or profile["secret"] != secret:
+                return self._page(q, error=bad)
+            level = profile.get("level", "ops")
 
         try:
             client = await self.get_client(str(q["client_id"]))
@@ -132,7 +155,7 @@ class OpsOAuthProvider(InMemoryOAuthProvider):
             # In-memory provider filters params.scopes against the client's
             # registered scope string — widen registration so the profile's
             # forced scopes survive.
-            forced = _scopes_for(profile)
+            forced = _scopes_for({"level": level})
             client.scope = " ".join(sorted(set((client.scope or "").split()) | set(forced)))
             from mcp.server.auth.provider import AuthorizationParams
             params = AuthorizationParams(

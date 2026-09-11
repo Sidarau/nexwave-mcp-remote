@@ -66,6 +66,15 @@ class NexwaveAPI:
     async def ops_state(self) -> Any:
         return await self._get("/api/v1/ops/state")
 
+    async def ops_auth_verify(self, email: str, password: str) -> Any:
+        """Operator credential check for the MCP login gate (ZEUG-667).
+        404 = bridge not deployed yet → caller falls back to legacy keys."""
+        r = await self.client().post("/api/v1/ops/auth/verify",
+                                     json={"email": email, "password": password})
+        if r.status_code != 200:
+            raise ApiError(r.status_code, r.text[:200])
+        return r.json()
+
     async def ops_set_vehicle(self, slug: str, fields: dict[str, Any]) -> Any:
         r = await self.client().post("/api/v1/ops/vehicle", json={"slug": slug, **fields})
         if r.status_code not in (200, 201):
