@@ -39,7 +39,11 @@ use your operator name + key.
 page — fleet, terms, destination guides, blog).
 
 **Ops** (`ops:read`): `ops_overview`, `ops_bookings` · (`ops:write`):
-`ops_set_vehicle` — narrow edits: daily rate, delist, description.
+`ops_set_vehicle` — narrow edits: daily rate, delist, description ·
+`ops_create_trip` / `ops_modify_trip` / `ops_cancel_trip` — trip lifecycle
+(create, adjust dates/vehicle/plan with quote delta, cancel with refund
+tier) · `ops_send_comms` — renter emails (booking_confirm |
+booking_modified | booking_cancelled; dry-run when no mail provider).
 
 Ops tools call the platform's bearer-gated `/api/v1/ops/*` bridge
 ([PR #4](https://github.com/Sidarau/nexwave-platform/pull/4)) and degrade
@@ -55,6 +59,8 @@ export NEXWAVE_OAUTH_PROFILES='{"alex":{"secret":"…","level":"owner"}}'
 
 .venv/bin/python scripts/verify_http.py http://127.0.0.1:8378
 .venv/bin/python scripts/verify_oauth.py http://127.0.0.1:8378
+# end-to-end trip writes (needs the platform trip/comms bridge deployed):
+.venv/bin/python scripts/verify_ops_writes.py http://127.0.0.1:8378
 ```
 
 stdio mode (local agents that prefer a spawned process): `nexwave-mcp`

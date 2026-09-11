@@ -2,8 +2,9 @@
 # Sketchy Rides — AI operator access (Kostik)
 
 You can now talk to the Sketchy Rides platform from ChatGPT or Codex: check the
-fleet, see bookings, quote trips. Trip create/edit/cancel + renter messaging is
-the next build (ZEUG-666).
+fleet, see bookings, quote trips. Trip create/edit/cancel + renter messaging
+are live too (ZEUG-666, owner-tier `ops:write` scope — ask Alex if your login
+needs the write tier).
 
 ## Your login
 

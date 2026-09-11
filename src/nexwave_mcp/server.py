@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from typing import Any
 
 from fastmcp import FastMCP
@@ -49,8 +50,11 @@ demo transaction as a live rental or issued insurance."""
 OPS_INSTRUCTIONS = """\
 Sketchy Rides operator console for AI agents. ops_overview gives fleet +
 booking state, ops_bookings lists trips, ops_set_vehicle applies narrow
-fleet edits (rate, hidden, name, description). Reads first; confirm with
-the human before any write."""
+fleet edits (rate, hidden, name, description). ops_create_trip books a trip
+for a renter, ops_modify_trip adjusts dates/vehicle/plan, ops_cancel_trip
+cancels and computes the refund, ops_send_comms emails the renter
+(booking_confirm | booking_modified | booking_cancelled). Reads first;
+confirm with the human before any write."""
 
 
 def build_public_server() -> FastMCP:
@@ -157,6 +161,88 @@ def build_ops_server(base_url: str) -> FastMCP:
         except Exception as e:  # noqa: BLE001
             return _err(e)
 
+    PLANS = ("full", "liability", "decline")
+    COMMS_TEMPLATES = ("booking_confirm", "booking_modified", "booking_cancelled")
+
+    def _valid_date(s: str) -> bool:
+        return bool(re.fullmatch(r"\d{4}-\d{2}-\d{2}", s))
+
+    @mcp.tool(annotations=WRITE, auth=[require_scopes("ops:write")])
+    async def ops_create_trip(vehicle_slug: str, start_date: str, end_date: str,
+                              plan: str, renter_name: str, renter_email: str,
+                              renter_phone: str = "") -> Any:
+        """Create a booking for a renter. start/end: YYYY-MM-DD (end = return
+        day); plan: full | liability | decline. Confirm all details with the
+        operator before calling — this books a real trip."""
+        if plan not in PLANS:
+            return f"Bad plan {plan!r} — use full | liability | decline."
+        if not _valid_date(start_date) or not _valid_date(end_date):
+            return "Dates must be YYYY-MM-DD."
+        payload: dict[str, Any] = {
+            "vehicleSlug": vehicle_slug, "startDate": start_date,
+            "endDate": end_date, "plan": plan,
+            "renterName": renter_name, "renterEmail": renter_email,
+        }
+        if renter_phone:
+            payload["renterPhone"] = renter_phone
+        try:
+            return await api().ops_create_trip(payload)
+        except Exception as e:  # noqa: BLE001
+            return _err(e)
+
+    @mcp.tool(annotations=WRITE, auth=[require_scopes("ops:write")])
+    async def ops_modify_trip(booking_id: str, start_date: str = "",
+                              end_date: str = "", vehicle_slug: str = "",
+                              plan: str = "") -> Any:
+        """Modify an existing booking (booking id or ref, e.g. SR-...). Pass
+        only the fields to change: start_date/end_date (YYYY-MM-DD),
+        vehicle_slug, plan (full | liability | decline). Returns the updated
+        booking with the new quote and quoteDeltaCents."""
+        fields: dict[str, Any] = {}
+        for key, value in (("startDate", start_date), ("endDate", end_date)):
+            if value:
+                if not _valid_date(value):
+                    return "Dates must be YYYY-MM-DD."
+                fields[key] = value
+        if vehicle_slug:
+            fields["vehicleSlug"] = vehicle_slug
+        if plan:
+            if plan not in PLANS:
+                return f"Bad plan {plan!r} — use full | liability | decline."
+            fields["plan"] = plan
+        if not fields:
+            return "Nothing to change — pass at least one field."
+        try:
+            return await api().ops_modify_trip(booking_id, fields)
+        except Exception as e:  # noqa: BLE001
+            return _err(e)
+
+    @mcp.tool(annotations=WRITE, auth=[require_scopes("ops:write")])
+    async def ops_cancel_trip(booking_id: str, reason: str = "") -> Any:
+        """Cancel a booking (id or ref). This cancels the live trip and
+        computes the refund tier (none | full | partial) from the 24h rule.
+        Confirm with the operator before calling."""
+        try:
+            return await api().ops_cancel_trip(booking_id, reason)
+        except Exception as e:  # noqa: BLE001
+            return _err(e)
+
+    @mcp.tool(annotations=WRITE, auth=[require_scopes("ops:write")])
+    async def ops_send_comms(booking_id: str, template: str, note: str = "") -> Any:
+        """Send (or dry-run, when no mail provider is configured) a renter
+        email for a booking. template: booking_confirm | booking_modified |
+        booking_cancelled. Returns the rendered to/subject/text."""
+        if template not in COMMS_TEMPLATES:
+            return (f"Bad template {template!r} — use booking_confirm | "
+                    "booking_modified | booking_cancelled.")
+        payload: dict[str, Any] = {"bookingId": booking_id, "template": template}
+        if note:
+            payload["note"] = note
+        try:
+            return await api().ops_send_comms(payload)
+        except Exception as e:  # noqa: BLE001
+            return _err(e)
+
     return mcp
 
 
@@ -184,7 +270,8 @@ manages the fleet.</p>
 <p>Same steps; your client opens a sign-in page. Use your operator name + key.</p>
 <h2>Tools</h2>
 <p><b>Public:</b> fleet_list · availability_check · quote_trip · search · fetch<br>
-<b>Ops:</b> ops_overview · ops_bookings · ops_set_vehicle</p>
+<b>Ops:</b> ops_overview · ops_bookings · ops_set_vehicle · ops_create_trip ·
+ops_modify_trip · ops_cancel_trip · ops_send_comms</p>
 <p>Fleet &amp; booking: <a href="https://sketchyrides.com">sketchyrides.com</a></p>
 </main></body></html>"""
 
