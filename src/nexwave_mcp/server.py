@@ -31,9 +31,13 @@ from typing import Any
 
 from fastmcp import FastMCP
 from fastmcp.server.auth import require_scopes
-from mcp.types import ToolAnnotations
+from mcp.types import Icon, ToolAnnotations
 
 from .backend import ApiError, api, site_index
+
+WEBSITE_URL = "https://trydayclub.com"
+BRAND_ICONS = [Icon(src=f"{WEBSITE_URL}/app-icon.svg",
+                    mimeType="image/svg+xml", sizes=["any"])]
 
 READ_ONLY = ToolAnnotations(read_only_hint=True, destructive_hint=False,
                             idempotent_hint=True, open_world_hint=True)
@@ -58,7 +62,8 @@ the human before any write."""
 
 
 def build_public_server() -> FastMCP:
-    mcp = FastMCP(name="trydayclub", instructions=PUBLIC_INSTRUCTIONS)
+    mcp = FastMCP(name="trydayclub", instructions=PUBLIC_INSTRUCTIONS,
+                  website_url=WEBSITE_URL, icons=BRAND_ICONS)
 
     @mcp.tool(annotations=READ_ONLY)
     async def fleet_list() -> dict[str, Any]:
@@ -109,7 +114,8 @@ def build_ops_server(base_url: str) -> FastMCP:
     from .auth import build_ops_auth
 
     provider = build_ops_auth(base_url)
-    mcp = FastMCP(name="trydayclub-ops", instructions=OPS_INSTRUCTIONS, auth=provider)
+    mcp = FastMCP(name="trydayclub-ops", instructions=OPS_INSTRUCTIONS, auth=provider,
+                  website_url=WEBSITE_URL, icons=BRAND_ICONS)
 
     def _err(e: Exception) -> str:
         if isinstance(e, ApiError) and e.status == 404:
@@ -165,7 +171,8 @@ def build_ops_server(base_url: str) -> FastMCP:
 
 
 LANDING = """<!doctype html><html><head><meta charset="utf-8">
-<title>Try Day Club · MCP</title><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Try Day Club · MCP</title>
+<link rel="icon" href="https://trydayclub.com/app-icon.svg" type="image/svg+xml"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>body{font-family:ui-sans-serif,system-ui;background:#f6f7f9;color:#101828;margin:0;padding:3rem 1.25rem}
 main{max-width:640px;margin:0 auto}h1{font-size:1.4rem;margin:0 0 .25rem}
 p,li{font-size:.9rem;color:#475467;line-height:1.55}code,pre{background:#eef2f6;border-radius:6px;font-size:.82rem}
@@ -173,6 +180,7 @@ code{padding:.1rem .35rem}pre{padding:.8rem 1rem;overflow:auto;border:1px solid 
 h2{font-size:.95rem;margin:2rem 0 .4rem}.tag{display:inline-block;background:#1570ef;color:#fff;
 border-radius:999px;padding:.15rem .6rem;font-size:.7rem;font-weight:600;letter-spacing:.05em}</style></head>
 <body><main>
+<a href="https://trydayclub.com" aria-label="Try Day Club home"><img src="https://trydayclub.com/app-icon.svg" alt="Try Day Club" width="72" height="72"></a><br>
 <span class="tag">MCP · AI-NATIVE RENTAL</span>
 <h1>Try Day Club for agents</h1>
 <p>Add one connector and your AI can shop the LA fleet, quote a trip, and read
@@ -189,7 +197,7 @@ manages the fleet.</p>
 <h2>Tools</h2>
 <p><b>Public:</b> fleet_list · availability_check · quote_trip · search · fetch<br>
 <b>Ops:</b> ops_overview · ops_bookings · ops_set_vehicle</p>
-<p>Fleet &amp; booking: <a href="https://sketchyrides.com">sketchyrides.com</a></p>
+<p>Fleet &amp; booking: <a href="https://trydayclub.com">trydayclub.com</a></p>
 </main></body></html>"""
 
 

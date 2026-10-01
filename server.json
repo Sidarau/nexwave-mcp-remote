@@ -7,11 +7,20 @@
     "url": "https://github.com/Sidarau/nexwave-mcp-remote",
     "source": "github"
   },
-  "websiteUrl": "https://sketchyrides.com/developers",
+  "websiteUrl": "https://trydayclub.com",
   "remotes": [
     {
       "type": "streamable-http",
       "url": "https://trydayclub-mcp.fly.dev/mcp"
+    }
+  ],
+  "icons": [
+    {
+      "src": "https://trydayclub.com/app-icon.svg",
+      "mimeType": "image/svg+xml",
+      "sizes": [
+        "any"
+      ]
     }
   ]
 }

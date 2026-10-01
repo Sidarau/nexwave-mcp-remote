@@ -84,3 +84,10 @@ mcp-publisher publish   # from this repo
 ```
 
 — Enki · ZEUG-663
+
+## Connector branding
+
+Both public and operator MCP handshakes advertise `https://trydayclub.com`
+and the official red TDC app mark at `https://trydayclub.com/app-icon.svg`.
+The registry manifest and connector landing page use the same branding.
+Clients may cache this metadata; refresh the existing connector after deployment.
