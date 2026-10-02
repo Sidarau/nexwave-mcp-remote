@@ -1,0 +1,37 @@
+{
+  "checked_at_utc": "2026-10-02T00:06:51.728828+00:00",
+  "package_validation": "PASS",
+  "canonical_schemas": "Draft 2020-12 validation passed for plugin.json and mcp.json",
+  "openai_constraints": "Documented listing, case, path, icon, color, URL, and public-surface assertions passed",
+  "color_contrast_white": 4.569,
+  "listing_url_checks": [
+    {
+      "url": "https://trydayclub.com",
+      "status": 200
+    },
+    {
+      "url": "https://trydayclub.com/privacy",
+      "status": 200
+    },
+    {
+      "url": "https://trydayclub.com/terms",
+      "status": 200
+    }
+  ],
+  "files": [
+    "plugin.json",
+    "mcp.json",
+    "assets/tdc-icon.svg"
+  ],
+  "review_ready": false,
+  "review_limitations": [
+    "Live conversation cases remain pending until observed",
+    "Video walkthrough URL must be supplied",
+    "Dashboard developer and domain verification, scan findings, and policy attestations remain owner-controlled"
+  ],
+  "zip": {
+    "path": "dist/trydayclub-1.0.0.zip",
+    "sha256": "08dafcf565f6147abf54e17fa0de457e331662c6214de80e1eecb8ac22619674",
+    "bytes": 3595
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "checked_on": "2026-10-01",
+  "package_guide": "https://developers.openai.com/plugins/build/plugins",
+  "submission_guide": "https://developers.openai.com/plugins/deploy/submission",
+  "listing_errors": "https://developers.openai.com/plugins/deploy/submission-errors#listing-and-interface-errors",
+  "guidelines": "https://developers.openai.com/plugins/plugin-guidelines",
+  "icon": {
+    "url": "https://trydayclub.com/app-icon.svg",
+    "sha256": "2089bba60950da275c1d8f15d6e6e0f5c2aaa22467a0777f99d8631051e1e27d",
+    "operation": "Unmodified official SVG download"
+  },
+  "listing_urls": {
+    "websiteURL": "https://trydayclub.com",
+    "supportURL": "https://trydayclub.com",
+    "privacyPolicyURL": "https://trydayclub.com/privacy",
+    "termsOfServiceURL": "https://trydayclub.com/terms"
+  },
+  "support_evidence": "Live homepage Contact us widget opens team-contact-panel with Call the team and text links. /contact is not a published page."
+}

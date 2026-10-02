@@ -1,0 +1,9 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "trydayclub": {
+      "type": "streamable-http",
+      "url": "https://trydayclub-mcp.fly.dev/mcp"
+    }
+  }
+}
