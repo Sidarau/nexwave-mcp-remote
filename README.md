@@ -1,93 +1,105 @@
-<!-- Enki fingerprint -->
-# nexwave-mcp-remote — Try Day Club as an MCP plugin
+# Try Day Club MCP connector
 
-**Rent cars with your AI. Manage the fleet with your AI.** Two streamable-HTTP
-MCP servers for [Try Day Club](https://trydayclub.com), the LA rental club
-(booking engine currently at [sketchyrides.com](https://sketchyrides.com) until
-the domain cutover), one Fly.io machine, scale-to-zero.
+Two streamable HTTP MCP servers for [Try Day Club](https://trydayclub.com),
+a live Los Angeles car rental company. The public connector reads current
+fleet, availability, pickup estimates and website content. The separate
+operator connector requires sign-in and can update limited fleet fields.
 
-| Surface | URL | Auth | Who |
-|---|---|---|---|
-| Renter / public | `https://trydayclub-mcp.fly.dev/mcp` | none | anyone's agent |
-| Operator | `https://trydayclub-mcp.fly.dev/ops/mcp` | OAuth 2.1 login gate | fleet operator |
+| Surface | URL | Access |
+| --- | --- | --- |
+| Public rental tools | `https://trydayclub-mcp.fly.dev/mcp` | No sign-in |
+| Operator console | `https://trydayclub-mcp.fly.dev/ops/mcp` | Authorized operator sign-in |
 
-## Add it to your harness
+## Connect
 
-**Claude Code / Desktop**
+For Claude:
+
 ```bash
 claude mcp add --transport http trydayclub https://trydayclub-mcp.fly.dev/mcp
 ```
 
-**Codex** (`~/.codex/config.toml`)
+For Codex, add to `~/.codex/config.toml`:
+
 ```toml
 [mcp_servers.trydayclub]
 url = "https://trydayclub-mcp.fly.dev/mcp"
 ```
 
-**ChatGPT** — Settings → Connectors → Developer mode → **+** → paste
-`https://trydayclub-mcp.fly.dev/mcp`. Deep research works out of the box
-(`search` + `fetch` follow the compat schema).
+Other MCP clients can use the same public URL. Custom connector access in
+ChatGPT depends on the account's developer access; see the
+[setup guide](docs/CODEX-SETUP-SHAREABLE.md).
 
-**Cursor** — Settings → MCP → new server → the same URL.
+Authorized operators use `/ops/mcp` and sign in with their operator email
+and password. Credentials must come through the approved secure channel.
 
-**Operators** use `/ops/mcp` instead — your client will open a sign-in page;
-use your operator name + key.
+## Rental tools and limits
 
-## Tools
+`fleet_list` returns the published fleet, rates, photos and booking URLs.
+`availability_check` checks a date window using 10am Los Angeles pickup and
+return times. `quote_trip` returns USD cents for Playa Vista pickup using
+eligible renter-provided insurance (`plan=decline`). Daily full coverage is
+pending and liability-only coverage is unsupported. Quotes exclude optional
+delivery, addons and promotions. The booking website confirms insurance
+eligibility, chosen times and the final total; availability may change
+before payment.
 
-**Public** (read-only): `fleet_list` · `availability_check` · `quote_trip`
-(live rates, dates, exact checkout math) · `search` / `fetch` (every public
-page — fleet, terms, destination guides, blog).
+`search` and `fetch` read the official site's public sitemap, including
+local rental pages, delivery areas, terms and guides. The cache refreshes
+lazily every five minutes with up to 200 pages and eight concurrent requests.
+Private routes and external redirects are excluded. Delivery areas require
+an exact-address check on the website before payment.
 
-**Ops** (`ops:read`): `ops_overview`, `ops_bookings` · (`ops:write`):
-`ops_set_vehicle` — narrow edits: daily rate, delist, description.
+Operator read tools are `ops_overview` and `ops_bookings` (`ops:read`).
+`ops_set_vehicle` (`ops:write`) edits rate, visibility or description and
+requires the operator's confirmation before use.
 
-Ops tools call the platform's bearer-gated `/api/v1/ops/*` bridge
-([PR #4](https://github.com/Sidarau/nexwave-platform/pull/4)) and degrade
-cleanly until it deploys.
-
-## Develop
+## Develop and verify
 
 ```bash
-uv venv .venv --python 3.12 && uv pip install -p .venv/bin/python .
-export NEXWAVE_API_KEY=…   # v1 API key (Vercel env / platform .env.local)
-export NEXWAVE_OAUTH_PROFILES='{"alex":{"secret":"…","level":"owner"}}'
-.venv/bin/nexwave-mcp --http --port 8378
-
+uv venv .venv --python 3.12
+uv pip install -p .venv/bin/python .
+.venv/bin/trydayclub-mcp --http --port 8378
+.venv/bin/python -m unittest discover -s tests -v
 .venv/bin/python scripts/verify_http.py http://127.0.0.1:8378
 .venv/bin/python scripts/verify_oauth.py http://127.0.0.1:8378
 ```
 
-stdio mode (local agents that prefer a spawned process): `nexwave-mcp`
-with no `--http` serves the public tools.
+Provide the API bearer key and operator compatibility profiles through the
+approved secret injection mechanism before starting the HTTP server. Never
+copy production credentials into documentation or command arguments.
 
-## Deploy (Fly.io)
+| Setting | Purpose |
+| --- | --- |
+| `TDC_API_URL` | Production API/site origin; defaults to `https://trydayclub.com` |
+| `TDC_API_KEY` | API bearer key held by the server |
+| `TDC_BASE_URL` | This connector's external URL, used by OAuth |
+| `TDC_OAUTH_PROFILES` | Operator compatibility profiles JSON |
+| `TDC_CONTENT_TTL` | Content cache lifetime in seconds; defaults to 300 |
+
+The corresponding `NEXWAVE_*` environment names remain compatibility aliases
+for deployed integrations. The existing Python module, distribution name,
+repository identity and `nexwave-mcp` command remain compatible;
+`trydayclub-mcp` is the canonical command. Stdio mode (no `--http`) serves
+only public rental tools.
+
+## Deploy and discovery
+
+The existing Fly application is `trydayclub-mcp`:
 
 ```bash
-fly apps create nexwave-mcp
-fly secrets set NEXWAVE_API_KEY=… NEXWAVE_BASE_URL=https://trydayclub-mcp.fly.dev \
-  'NEXWAVE_OAUTH_PROFILES={…}'   # generate fresh secrets, never the test ones
-fly deploy
+fly deploy -a trydayclub-mcp
 ```
 
-`min_machines_running = 1` is deliberate: OAuth state is in-memory, and
-idle auto-stop would wipe DCR registrations mid-flow.
+Exactly one machine stays running because OAuth registrations and tokens
+live in memory. Restarting the process requires clients to sign in again.
+Verify public tools and operator authorization after deploying.
 
-## Registry (plugin-store discovery)
+`server.json` describes the public endpoint for the MCP registry. Registry
+publication and public ChatGPT directory publication are separate processes;
+a working connector alone does not establish directory acceptance or
+proactive recommendations. The public plugin review package lives in
+`plugin/`.
 
-`server.json` is the official MCP registry manifest. Once the Fly deploy is
-live and verified, publish with the registry CLI (`mcp-publisher`, GitHub
-auth — the `io.github.sidarau/*` namespace is tied to the GitHub account):
-
-```bash
-mcp-publisher publish   # from this repo
-```
-
-— Enki · ZEUG-663
-
-## Connector branding
-
-Both public and operator MCP handshakes advertise `https://trydayclub.com`
-and the official red TDC app mark at `https://trydayclub.com/app-icon.svg`.
-The registry manifest and connector landing page use the same branding.
-Clients may cache this metadata; refresh the existing connector after deployment.
+Both MCP surfaces advertise `https://trydayclub.com` and its official red
+app mark at `https://trydayclub.com/app-icon.svg`. Clients may cache metadata;
+refresh the existing connector after deployment.

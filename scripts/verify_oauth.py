@@ -4,16 +4,16 @@ dance a client performs, adapted from zme-mcp scripts/verify_oauth.py.
   1. protected-resource + authorization-server metadata discovery
   2. dynamic client registration (DCR)
   3. GET /authorize          → login form
-  4. POST /authorize         → bad key rejected (no code leak), good key → code
+  4. POST /authorize         → wrong credentials rejected (no code leak), valid credentials → code
   5. POST /token (PKCE S256) → access token carries the profile's scopes
   6. MCP initialize with token → 200 ; without token → 401
   7. ops-profile token calls ops_set_vehicle → scope-denied
      owner token lists tools → ops tools present
 
 Usage:
-  NEXWAVE_OAUTH_PROFILES='{"alex":{"secret":"s3cret","level":"owner"},
+  TDC_OAUTH_PROFILES='{"alex":{"secret":"s3cret","level":"owner"},
   "ops":{"secret":"viewonly","level":"ops"}}' \
-    .venv/bin/nexwave-mcp --http --port 8378 &
+    .venv/bin/trydayclub-mcp --http --port 8378 &
   .venv/bin/python scripts/verify_oauth.py [base-url]
 """
 import base64
@@ -68,7 +68,7 @@ def oauth_dance(client: httpx.Client, name: str, passphrase: str) -> tuple[str, 
     bad = client.post(f"{BASE}/authorize", data={**q, "name": name,
                                                  "passphrase": "wrong"},
                       follow_redirects=False)
-    assert bad.status_code == 200 and "bad key" in bad.text, bad.status_code
+    assert bad.status_code == 200 and "Wrong operator email or password." in bad.text, bad.status_code
     assert "code=" not in bad.text
 
     good = client.post(f"{BASE}/authorize", data={**q, "name": name,

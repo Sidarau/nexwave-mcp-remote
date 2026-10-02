@@ -1,7 +1,7 @@
 [project]
 name = "nexwave-mcp-remote"
 version = "0.1.0"
-description = "Remote MCP servers for the Sketchy Rides / Nexwave rental platform — renter plugin surface + operator ops, streamable HTTP on Fly.io (ZEUG-663)"
+description = "Try Day Club live Los Angeles car rentals — public rental tools and authenticated operator tools over streamable HTTP"
 requires-python = ">=3.11"
 dependencies = [
     "fastmcp==4.0.3",
@@ -10,6 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
+trydayclub-mcp = "nexwave_mcp.server:main"
 nexwave-mcp = "nexwave_mcp.server:main"
 
 [build-system]

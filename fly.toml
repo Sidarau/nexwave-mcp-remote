@@ -5,6 +5,7 @@ primary_region = "sjc"
 
 [env]
 PORT = "8080"
+TDC_API_URL = "https://trydayclub.com"
 
 [http_service]
   internal_port = 8080

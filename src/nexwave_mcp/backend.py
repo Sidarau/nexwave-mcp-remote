@@ -1,6 +1,6 @@
-"""Backend for nexwave-mcp-remote — two data sources, both over HTTP.
+"""Backend for Try Day Club — two data sources, both over HTTP.
 
-1. The live v1 REST API at sketchyrides.com (bearer-key gated; the SERVER
+1. The live v1 REST API at trydayclub.com (bearer-key gated; the SERVER
    holds the key so end users of the public connector need nothing).
 2. The public website itself (sitemap-driven) for the ChatGPT deep-research
    compat pair `search`/`fetch` — fleet pages, terms, destination guides,
@@ -11,25 +11,53 @@ makes the server deployable anywhere (ZEUG-663).
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import re
 import time
 import xml.etree.ElementTree as ET
 from html.parser import HTMLParser
 from typing import Any
+from urllib.parse import urljoin, urlsplit
 
 import httpx
 
-SITE_URL = (os.environ.get("NEXWAVE_API_URL") or "https://sketchyrides.com").rstrip("/")
-API_KEY = os.environ.get("NEXWAVE_API_KEY") or ""
-CACHE_TTL = float(os.environ.get("NEXWAVE_CONTENT_TTL") or 300)
-MAX_CONTENT_PAGES = 60
+SITE_URL = (os.environ.get("TDC_API_URL") or os.environ.get("NEXWAVE_API_URL")
+            or "https://trydayclub.com").rstrip("/")
+API_KEY = os.environ.get("TDC_API_KEY") or os.environ.get("NEXWAVE_API_KEY") or ""
+CACHE_TTL = float(os.environ.get("TDC_CONTENT_TTL") or os.environ.get("NEXWAVE_CONTENT_TTL") or 300)
+MAX_CONTENT_PAGES = 200
+CONTENT_CONCURRENCY = 8
+MAX_HTML_CHARS = 400_000
+PRIVATE_PATHS = ("/api", "/dashboard", "/trips", "/checkout", "/verify-identity",
+                 "/login", "/operator-login", "/set-password")
+
+
+def _public_url(url: str) -> bool:
+    parsed, site = urlsplit(url), urlsplit(SITE_URL)
+    return (parsed.scheme == site.scheme and parsed.netloc == site.netloc
+            and not parsed.username and not parsed.password
+            and not parsed.query and not parsed.fragment
+            and not any(parsed.path == path or parsed.path.startswith(path + "/")
+                        for path in PRIVATE_PATHS))
 
 
 class ApiError(RuntimeError):
     def __init__(self, status: int, detail: str):
         super().__init__(f"API {status}: {detail}")
         self.status = status
+
+
+def _error_detail(response: httpx.Response) -> str:
+    """Keep useful API errors without exposing a proxy/server HTML response."""
+    try:
+        body = response.json()
+        error = body.get("error") if isinstance(body, dict) else None
+        if isinstance(error, str):
+            return error[:300]
+    except ValueError:
+        pass
+    return "Service request failed. Please try again or contact Try Day Club support."
 
 
 class NexwaveAPI:
@@ -50,7 +78,7 @@ class NexwaveAPI:
     async def _get(self, path: str, params: dict[str, Any] | None = None) -> Any:
         r = await self.client().get(path, params={k: v for k, v in (params or {}).items() if v is not None})
         if r.status_code != 200:
-            raise ApiError(r.status_code, r.text[:300])
+            raise ApiError(r.status_code, _error_detail(r))
         return r.json()
 
     async def fleet(self) -> Any:
@@ -59,26 +87,26 @@ class NexwaveAPI:
     async def availability(self, car: str, start: str, end: str) -> Any:
         return await self._get("/api/v1/availability", {"car": car, "start": start, "end": end})
 
-    async def quote(self, car: str, start: str, end: str, plan: str = "full") -> Any:
+    async def quote(self, car: str, start: str, end: str, plan: str = "decline") -> Any:
         return await self._get("/api/v1/quote", {"car": car, "start": start, "end": end, "plan": plan})
 
-    # ---- operator bridge (ships with the platform PR; absent → ApiError 404)
+    # ---- authenticated operator bridge
     async def ops_state(self) -> Any:
         return await self._get("/api/v1/ops/state")
 
     async def ops_auth_verify(self, email: str, password: str) -> Any:
         """Operator credential check for the MCP login gate (ZEUG-667).
-        404 = bridge not deployed yet → caller falls back to legacy keys."""
+        404 = unavailable bridge → caller uses the compatibility login profiles."""
         r = await self.client().post("/api/v1/ops/auth/verify",
                                      json={"email": email, "password": password})
         if r.status_code != 200:
-            raise ApiError(r.status_code, r.text[:200])
+            raise ApiError(r.status_code, _error_detail(r))
         return r.json()
 
     async def ops_set_vehicle(self, slug: str, fields: dict[str, Any]) -> Any:
         r = await self.client().post("/api/v1/ops/vehicle", json={"slug": slug, **fields})
         if r.status_code not in (200, 201):
-            raise ApiError(r.status_code, r.text[:300])
+            raise ApiError(r.status_code, _error_detail(r))
         return r.json()
 
 
@@ -131,7 +159,7 @@ class SiteIndex:
     def __init__(self) -> None:
         self._docs: list[dict[str, str]] = []
         self._built_at = 0.0
-        self._lock = False
+        self._lock = asyncio.Lock()
 
     async def _sitemap_urls(self) -> list[str]:
         try:
@@ -140,44 +168,60 @@ class SiteIndex:
                 r.raise_for_status()
             root = ET.fromstring(r.text)
             ns = {"sm": "http://www.sitemaps.org/schemas/sitemap/0.9"}
-            urls = [loc.text or "" for loc in root.findall(".//sm:loc", ns)]
+            urls = [(loc.text or "").strip() for loc in root.findall(".//sm:loc", ns)]
             if not urls:  # sitemap without namespace
-                urls = [loc.text or "" for loc in root.iter("loc")]
-            return [u for u in urls if u.startswith("http")][:MAX_CONTENT_PAGES]
+                urls = [(loc.text or "").strip() for loc in root.iter("loc")]
+            return list(dict.fromkeys(u for u in urls if _public_url(u)))[:MAX_CONTENT_PAGES]
         except Exception:
             return [SITE_URL + "/", SITE_URL + "/terms", SITE_URL + "/blog"]
 
     async def rebuild(self, force: bool = False) -> None:
-        if self._lock or (not force and time.time() - self._built_at < CACHE_TTL and self._docs):
-            return
-        self._lock = True
-        try:
+        # A second cold request waits for the first crawl instead of seeing an
+        # empty cache. Recheck freshness after acquiring the lock.
+        async with self._lock:
+            if not force and time.time() - self._built_at < CACHE_TTL and self._docs:
+                return
             urls = await self._sitemap_urls()
-            docs: list[dict[str, str]] = []
-            async with httpx.AsyncClient(timeout=20.0, follow_redirects=True) as c:
-                for url in urls:
-                    try:
-                        r = await c.get(url)
-                        if r.status_code != 200 or "text/html" not in r.headers.get("content-type", ""):
-                            continue
-                        p = _TextExtractor()
-                        p.feed(r.text[:400_000])
-                        text = p.text()
-                        if len(text) < 40:
-                            continue
-                        docs.append({
-                            "id": url,
-                            "url": url,
-                            "title": _extract_title(r.text) or url.rsplit("/", 1)[-1] or "Sketchy Rides",
-                            "text": text[:24_000],
-                        })
-                    except Exception:
-                        continue
+            slots = asyncio.Semaphore(CONTENT_CONCURRENCY)
+            async with httpx.AsyncClient(timeout=20.0) as c:
+                async def page(url: str) -> dict[str, str] | None:
+                    async with slots:
+                        try:
+                            # Validate each redirect before following it; a
+                            # sitemap cannot turn this into an arbitrary fetcher.
+                            for _ in range(4):
+                                if not _public_url(url):
+                                    return None
+                                r = await c.get(url)
+                                if r.is_redirect:
+                                    url = urljoin(str(r.url), r.headers.get("location", ""))
+                                    continue
+                                break
+                            else:
+                                return None
+                            if r.status_code != 200 or "text/html" not in r.headers.get("content-type", ""):
+                                return None
+                            html = r.text[:MAX_HTML_CHARS]
+                            p = _TextExtractor()
+                            p.feed(html)
+                            text = p.text()
+                            if len(text) < 40:
+                                return None
+                            final_url = str(r.url)
+                            return {
+                                "id": final_url,
+                                "url": final_url,
+                                "title": _extract_title(html) or final_url.rsplit("/", 1)[-1] or "Try Day Club",
+                                "text": text[:24_000],
+                            }
+                        except (httpx.HTTPError, ValueError):
+                            return None
+                pages = await asyncio.gather(*(page(url) for url in urls))
+            # Redirects may converge on one page; keep one canonical document.
+            docs = {d["id"]: d for d in pages if d}
             if docs:
-                self._docs = docs
+                self._docs = list(docs.values())
                 self._built_at = time.time()
-        finally:
-            self._lock = False
 
     def search(self, query: str, limit: int = 10) -> list[dict[str, str]]:
         terms = [t for t in re.findall(r"[a-z0-9]+", query.lower()) if len(t) > 1]

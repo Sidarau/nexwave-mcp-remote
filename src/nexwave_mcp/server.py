@@ -1,7 +1,6 @@
-"""nexwave-mcp-remote — Try Day Club (trydayclub.com) as MCP servers (ZEUG-663).
+"""Try Day Club (trydayclub.com) as MCP servers (ZEUG-663).
 
-Brand: Try Day Club. Booking engine currently serves sketchyrides.com until
-the domain cutover.
+Brand and production booking website: Try Day Club (trydayclub.com).
 
 Two servers, one process, one Fly.io machine:
 
@@ -10,18 +9,18 @@ Two servers, one process, one Fly.io machine:
             fleet, check availability, quote a trip, and search/fetch every
             public page (fleet, terms, guides, blog).
 
-  /ops/mcp  OPERATOR surface — OAuth 2.1 login gate (NEXWAVE_OAUTH_PROFILES).
+  /ops/mcp  OPERATOR surface — OAuth 2.1 login gate.
             Fleet/booking overview and narrow fleet writes, proxied through
             the platform's bearer-gated /api/v1/ops/* bridge.
 
-stdio mode (nexwave-mcp with no --http) serves the public tools only, for
+stdio mode (trydayclub-mcp with no --http) serves the public tools only, for
 local agent configs that prefer a spawned process.
 
 Env:
-  NEXWAVE_API_KEY         v1 API bearer key (required; planted in Vercel + Fly)
-  NEXWAVE_API_URL         defaults to https://sketchyrides.com
-  NEXWAVE_BASE_URL        external URL of THIS server (http mode, OAuth issuer)
-  NEXWAVE_OAUTH_PROFILES  ops login profiles JSON (http mode)
+  TDC_API_KEY             v1 API bearer key (NEXWAVE_API_KEY compatibility alias)
+  TDC_API_URL             defaults to https://trydayclub.com (NEXWAVE_API_URL alias)
+  TDC_BASE_URL            external URL of THIS server (NEXWAVE_BASE_URL alias)
+  TDC_OAUTH_PROFILES      compatibility login profiles (NEXWAVE_OAUTH_PROFILES alias)
 """
 from __future__ import annotations
 
@@ -45,19 +44,23 @@ WRITE = ToolAnnotations(read_only_hint=False, destructive_hint=False,
                         idempotent_hint=False, open_world_hint=True)
 
 PUBLIC_INSTRUCTIONS = """\
-Try Day Club is a Los Angeles car-rental club (trydayclub.com). Use
-fleet_list to see the cars with live rates and booking URLs,
-availability_check before promising dates, and quote_trip for exact
-checkout math (rate + insurance + CA tax + deposit hold). Use search/fetch
-to answer questions from the site's pages — rental terms, destination
-guides, blog posts — and cite the URLs. Note the checkout currently runs in
-Stripe test / ABI demo mode: never represent a demo transaction as a live
-rental or issued insurance."""
+Try Day Club is a live Los Angeles car-rental company (trydayclub.com).
+Use fleet_list for current cars, rates and booking URLs, and
+availability_check before discussing available dates. Dates use a 10am
+Los Angeles pickup and return time. quote_trip estimates Playa Vista
+pickup with eligible renter-provided insurance (plan=decline); daily full
+coverage is currently pending. Quote amounts are USD cents and exclude
+optional delivery, addons and promotions. Confirm the final total and
+chosen times on the booking website; availability can change before payment.
+Use search/fetch for rental terms, local rental and delivery pages, guides
+and blog posts, and cite their URLs. Delivery is limited to the website's
+supported areas and requires an exact-address check before payment.
+These tools read information; complete the reservation on trydayclub.com."""
 
 OPS_INSTRUCTIONS = """\
 Try Day Club operator console for AI agents. ops_overview gives fleet +
 booking state, ops_bookings lists trips, ops_set_vehicle applies narrow
-fleet edits (rate, hidden, name, description). Reads first; confirm with
+fleet edits (rate, hidden, description). Reads first; confirm with
 the human before any write."""
 
 
@@ -73,17 +76,20 @@ def build_public_server() -> FastMCP:
 
     @mcp.tool(annotations=READ_ONLY)
     async def availability_check(car: str, start: str, end: str) -> dict[str, Any]:
-        """Check whether a car is free for a date window.
+        """Check a date window with 10am Los Angeles pickup and return times.
+        The booking website confirms chosen times and current availability.
 
         car: car slug or 17-char VIN · start/end: YYYY-MM-DD (end = return day)
         """
         return await api().availability(car, start, end)
 
     @mcp.tool(annotations=READ_ONLY)
-    async def quote_trip(car: str, start: str, end: str, plan: str = "full") -> dict[str, Any]:
-        """Exact checkout quote in USD cents: daily rate + insurance plan +
-        11.5% CA tax + deposit hold. plan: full | liability | decline.
-        Pilot runs a demo insurance fee — not issued coverage."""
+    async def quote_trip(car: str, start: str, end: str, plan: str = "decline") -> dict[str, Any]:
+        """Estimate rental and tax in USD cents for Playa Vista pickup at
+        10am Los Angeles time on both dates, without delivery, addons or
+        promotions. plan=decline uses eligible renter-provided insurance;
+        full coverage is pending and liability is unsupported. The website
+        confirms insurance eligibility, chosen times and the final total."""
         return await api().quote(car, start, end, plan)
 
     @mcp.tool(annotations=READ_ONLY)
@@ -105,7 +111,7 @@ def build_public_server() -> FastMCP:
             return {"id": id, "title": "", "text": "", "url": "",
                     "metadata": {"error": "not found — run search first"}}
         return {"id": d["id"], "title": d["title"], "text": d["text"],
-                "url": d["url"], "metadata": {"source": "sketchyrides.com"}}
+                "url": d["url"], "metadata": {"source": "trydayclub.com"}}
 
     return mcp
 
@@ -119,10 +125,10 @@ def build_ops_server(base_url: str) -> FastMCP:
 
     def _err(e: Exception) -> str:
         if isinstance(e, ApiError) and e.status == 404:
-            return ("Ops bridge not deployed yet — /api/v1/ops/* ships with the "
-                    "platform PR for ZEUG-663. Read tools will light up the moment "
-                    "it merges; no action needed on this server.")
-        return f"{type(e).__name__}: {e}"
+            return "The operator service is unavailable (404). Contact Try Day Club support."
+        if isinstance(e, ApiError):
+            return f"The operator service returned HTTP {e.status}. Contact Try Day Club support."
+        return "The operator service could not be reached. Please try again."
 
     @mcp.tool(annotations=READ_ONLY, auth=[require_scopes("ops:read")])
     async def ops_overview() -> Any:
@@ -190,10 +196,10 @@ manages the fleet.</p>
 <pre>URL: {base}/mcp</pre>
 <p><b>Claude:</b> <code>claude mcp add --transport http trydayclub {base}/mcp</code><br>
 <b>Codex:</b> <code>[mcp_servers.trydayclub] url = "{base}/mcp"</code><br>
-<b>ChatGPT:</b> Settings → Connectors → + → paste the URL (deep research: search + fetch are built in)</p>
+<b>ChatGPT:</b> Add this URL as a custom MCP connector in your client; search and fetch are built in</p>
 <h2>Operators — fleet management (OAuth sign-in)</h2>
 <pre>URL: {base}/ops/mcp</pre>
-<p>Same steps; your client opens a sign-in page. Use your operator name + key.</p>
+<p>Same steps; your client opens a sign-in page. Use your authorized operator email and password.</p>
 <h2>Tools</h2>
 <p><b>Public:</b> fleet_list · availability_check · quote_trip · search · fetch<br>
 <b>Ops:</b> ops_overview · ops_bookings · ops_set_vehicle</p>
@@ -247,8 +253,8 @@ def http_app(base_url: str):
 def main() -> None:
     import argparse
 
-    p = argparse.ArgumentParser(prog="nexwave-mcp",
-                                description="Try Day Club / Nexwave MCP servers")
+    p = argparse.ArgumentParser(prog="trydayclub-mcp",
+                                description="Try Day Club MCP servers")
     p.add_argument("--http", action="store_true")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=int(os.environ.get("PORT") or 8000))
@@ -256,7 +262,7 @@ def main() -> None:
 
     if args.http:
         import uvicorn
-        base_url = (os.environ.get("NEXWAVE_BASE_URL")
+        base_url = (os.environ.get("TDC_BASE_URL") or os.environ.get("NEXWAVE_BASE_URL")
                     or f"http://{args.host}:{args.port}").rstrip("/")
         uvicorn.run(http_app(base_url), host=args.host, port=args.port, log_level="info")
     else:
