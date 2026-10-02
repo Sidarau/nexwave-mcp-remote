@@ -59,10 +59,11 @@ codex mcp list
 Test it with a real quote:
 
 ```bash
-codex exec "Using the trydayclub tools, list the fleet and quote a Corolla for next Friday to Monday with full coverage."
+codex exec "Using the trydayclub tools, list the fleet and quote a Corolla for next Friday to Monday using my own eligible insurance with Playa Vista pickup."
 ```
 
-You should see real vehicles and a dollar quote.
+You should see current vehicles and a pickup estimate. Optional delivery, addons,
+promotions and chosen handoff times are confirmed on the booking website.
 
 ## Add the operator connector for authorized staff
 
@@ -95,8 +96,8 @@ administrator can revoke access or help with an expired login.
 
 ## ChatGPT setup
 
-In ChatGPT, enable Developer mode under Settings → Connectors, then create a
-connector with one of these URLs:
+For custom MCP access, create a connector in your client using one of these
+URLs. Developer access and the settings location depend on your account:
 
 | Access | URL |
 | --- | --- |

@@ -1,6 +1,6 @@
 """Public-server verification over streamable HTTP using a real MCP client
 (fastmcp.Client) — never pipe JSON-RPC into stdin; it crashes stdio servers
-mid-reply. Hits the LIVE sketchyrides.com API through the server.
+mid-reply. Hits the live trydayclub.com API through the server.
 
   1. /healthz → ok
   2. tools/list → the 5 public tools, and ONLY those
@@ -12,11 +12,12 @@ mid-reply. Hits the LIVE sketchyrides.com API through the server.
   8. /ops/mcp without token → 401 (ops is never accidentally public)
 
 Usage:
-  NEXWAVE_API_KEY=… .venv/bin/nexwave-mcp --http --port 8379 &
+  TDC_API_KEY=… .venv/bin/trydayclub-mcp --http --port 8379 &
   .venv/bin/python scripts/verify_http.py [base-url]
 """
 import asyncio
 import json
+from datetime import date, timedelta
 import sys
 import urllib.error
 import urllib.request
@@ -47,6 +48,8 @@ async def main() -> int:
     with urllib.request.urlopen(f"{BASE}/", timeout=10) as r:
         check("landing page", b"/mcp" in r.read())
 
+    start = date.today() + timedelta(days=7)
+    end = start + timedelta(days=2)
     async with Client(f"{BASE}/mcp") as c:
         tools = await c.list_tools()
         names = sorted(t.name for t in tools)
@@ -63,13 +66,15 @@ async def main() -> int:
 
         if slug:
             av = as_json(await c.call_tool("availability_check", {
-                "car": slug, "start": "2026-10-01", "end": "2026-10-03"}))
+                "car": slug, "start": start.isoformat(), "end": end.isoformat()}))
             check("availability_check structured", isinstance(av, dict) and len(av) > 0,
                   json.dumps(av)[:200])
 
             qt = as_json(await c.call_tool("quote_trip", {
-                "car": slug, "start": "2026-10-01", "end": "2026-10-03", "plan": "full"}))
-            check("quote_trip has totals", "total" in json.dumps(qt).lower(),
+                "car": slug, "start": start.isoformat(), "end": end.isoformat()}))
+            check("quote_trip returns own-insurance pickup estimate",
+                  qt.get("ok") is True and qt.get("plan") == "decline"
+                  and isinstance(qt.get("totalCents"), int),
                   json.dumps(qt)[:200])
 
         s = as_json(await c.call_tool("search", {"query": "rental terms mileage"}))

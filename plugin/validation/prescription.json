@@ -1,0 +1,22 @@
+{
+  "issue": "owner-directed Try Day Club public discovery preparation",
+  "task_class": "docs",
+  "prescribed_model": "current user-selected Codex session",
+  "prescribed_lane": "Codex delegated package task",
+  "effort": "medium",
+  "risk": "low",
+  "venue": "local",
+  "estimated_cost": "Existing session; no separate paid lane",
+  "credit_rationale": "Owner-authorized package preparation within the current session",
+  "why_this_model": "Current session can inspect exact official schema documentation and produce reviewable local files with deterministic validators.",
+  "checker_model": "deterministic JSON Schema and submission-field checks; parent review",
+  "execution_template": "Inspect current official documentation; author only plugin/; validate the remote-only package; build an allowlisted ZIP",
+  "approval_required": false,
+  "acceptance_checks": [
+    "uv run --no-project --with jsonschema python plugin/validate_package.py --check-urls --build",
+    "ZIP contains exactly plugin.json, mcp.json, and assets/tdc-icon.svg",
+    "Exactly one public HTTPS MCP URL with no credential configuration",
+    "Five positive and three negative review cases; endpoint evidence is explicitly pending until observed",
+    "No fabricated publication ID, identity verification, recording URL, or review completion"
+  ]
+}

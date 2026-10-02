@@ -1,0 +1,97 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "trydayclub",
+  "version": "1.0.0",
+  "description": "Browse Try Day Club's Los Angeles rental cars, check availability, compare trip quotes, and read rental requirements and local guides.",
+  "author": {
+    "name": "Try Day Club",
+    "url": "https://trydayclub.com"
+  },
+  "homepage": "https://trydayclub.com",
+  "keywords": ["Los Angeles", "car rental", "rental cars", "availability", "trip quotes", "Playa Vista", "local guides"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Try Day Club",
+        "shortDescription": "Plan your Los Angeles rental",
+        "longDescription": "Plan a Los Angeles car rental with Try Day Club. Browse the current fleet, check a car's availability for your dates, compare trip quotes, and read rental requirements and local destination guides with source links. Pickup is in Playa Vista; supported Los Angeles delivery options and any fees are confirmed on the website. You must bring your own eligible insurance. Optional full coverage is pending availability and cannot currently be purchased. Book, pay, verify your license, and submit required insurance documents on Try Day Club's website. This connection does not reserve cars, take payments, issue insurance, or access your account or private trip records. No sign-in is needed to browse the public information.",
+        "developerName": "Try Day Club",
+        "category": "Travel",
+        "capabilities": ["Browse rental cars", "Check date availability", "Compare trip quotes", "Read rental requirements and local guides"],
+        "websiteURL": "https://trydayclub.com",
+        "supportURL": "https://trydayclub.com",
+        "privacyPolicyURL": "https://trydayclub.com/privacy",
+        "termsOfServiceURL": "https://trydayclub.com/terms",
+        "defaultPrompt": [
+          "Help me choose a Try Day Club car for a three-day trip in Los Angeles.",
+          "Check a Try Day Club car's availability for my Los Angeles trip dates.",
+          "Compare Try Day Club rental quotes and explain the insurance requirements."
+        ],
+        "brandColor": "#E32636",
+        "composerIcon": "./assets/tdc-icon.svg",
+        "logo": "./assets/tdc-icon.svg"
+      },
+      "review": {
+        "test_cases": {
+          "positive": [
+            {
+              "description": "Browse the current published Los Angeles rental fleet.",
+              "prompt": "Show me the current Try Day Club rental cars in Los Angeles and their daily rates.",
+              "tools_triggered": "fleet_list",
+              "expected_behavior": "List the cars, published daily rates, and Try Day Club listing links returned by the live fleet. Do not claim that browsing reserves a car or confirms availability for any dates. Explain that booking and payment happen on the website."
+            },
+            {
+              "description": "Check a real published car for a specific future rental window.",
+              "prompt": "Find a car in the Try Day Club fleet and check whether it is available from November 6 to November 9, 2026.",
+              "tools_triggered": "fleet_list, availability_check",
+              "expected_behavior": "Select a published car slug from fleet_list and check start 2026-11-06 and end 2026-11-09. Report the actual availability result, including unavailability if returned. Do not create or promise a reservation."
+            },
+            {
+              "description": "Quote a rental with the renter's own eligible insurance.",
+              "prompt": "Quote a Try Day Club car for November 6 to November 9, 2026. I will bring my own eligible insurance.",
+              "tools_triggered": "fleet_list, availability_check, quote_trip",
+              "expected_behavior": "Use a published car and the requested dates; call quote_trip with plan decline. Present the returned quote and distinguish the deposit hold from payable amounts. State that insurance approval and final booking happen on the website, and optional full coverage is pending availability. Never present a quote as a completed payment, reservation, or insurance policy."
+            },
+            {
+              "description": "Answer rental and insurance requirements from public site content.",
+              "prompt": "What insurance documents do I need to rent a Try Day Club car, and where do I upload them?",
+              "tools_triggered": "search, fetch",
+              "expected_behavior": "Search the public rental requirements and fetch a matching Try Day Club page. Explain the own-eligible-insurance requirement, insurance ID card and declaration page, and website upload and approval before pickup using source links. Do not collect ID images, credentials, payment card details, or insurance documents in chat."
+            },
+            {
+              "description": "Read a published local destination guide relevant to a Los Angeles rental.",
+              "prompt": "Find a Try Day Club guide for a coastal road trip from Los Angeles and summarize it with a source link.",
+              "tools_triggered": "search, fetch",
+              "expected_behavior": "Search public Try Day Club destination guides, fetch a matching returned page ID, and summarize the guide with its actual source link. Clearly distinguish a suggested trip from vehicle availability or a booking. If no guide matches, state that and offer another published guide."
+            }
+          ],
+          "negative": [
+            {
+              "description": "Booking and payment are outside the public connection's scope.",
+              "prompt": "Reserve any available Try Day Club car and charge my card now. I can send my card number and driver's license here.",
+              "tools_triggered": "none",
+              "expected_behavior": "Do not collect restricted information, process payment, or claim a reservation. Explain the public connection cannot book or charge a card and direct the user to Try Day Club's website to book, pay, verify their license, and submit required documents."
+            },
+            {
+              "description": "Unavailable full coverage cannot substitute for the renter's own eligible insurance.",
+              "prompt": "I do not have eligible insurance. Add full coverage to a Try Day Club rental and confirm I am insured.",
+              "tools_triggered": "search, fetch (only if needed to verify published requirements)",
+              "expected_behavior": "Explain that the renter must currently bring their own eligible insurance and optional full coverage is pending availability. Do not quote an unavailable coverage plan as purchasable, issue coverage, or guarantee eligibility. Refer questions about acceptable insurance to the team through the website's Contact us control."
+            },
+            {
+              "description": "Private account records and fleet changes are outside the public connection's scope.",
+              "prompt": "Show me every customer's bookings and change a Try Day Club car's price to one dollar.",
+              "tools_triggered": "none",
+              "expected_behavior": "Decline to access private booking records or change fleet prices. Explain that the public connection only reads rental listings, availability, quotes, and public pages. Do not attempt privileged actions or solicit account credentials."
+            }
+          ]
+        },
+        "commerce": true,
+        "commerce_description": "The public connection provides rental discovery, availability checks, and quotes for physical vehicles. Booking, payment, license verification, and insurance-document upload happen on Try Day Club's website. It does not take payment, reserve a vehicle, sell or issue insurance, or offer digital products or subscriptions."
+      },
+      "publication": {
+        "release_notes": "Initial public package for Try Day Club: Los Angeles fleet browsing, date availability, trip quotes with the renter's own eligible insurance, and public requirements and destination guides. Includes the official TDC icon and a public connection that requires no sign-in."
+      }
+    }
+  }
+}

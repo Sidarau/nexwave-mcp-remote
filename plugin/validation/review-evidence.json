@@ -1,0 +1,20 @@
+{
+  "endpoint": "https://trydayclub-mcp.fly.dev/mcp",
+  "authentication": "none",
+  "status": "PENDING",
+  "reason": "The parent task is updating the public connector. Case expectations are defined in plugin.json; fresh endpoint observations and ChatGPT behavior have not yet been supplied.",
+  "positive": [
+    {"case": 1, "tools": ["fleet_list"], "status": "PENDING", "observed_result": null},
+    {"case": 2, "tools": ["fleet_list", "availability_check"], "status": "PENDING", "observed_result": null},
+    {"case": 3, "tools": ["fleet_list", "availability_check", "quote_trip"], "status": "PENDING", "observed_result": null},
+    {"case": 4, "tools": ["search", "fetch"], "status": "PENDING", "observed_result": null},
+    {"case": 5, "tools": ["search", "fetch"], "status": "PENDING", "observed_result": null}
+  ],
+  "negative": [
+    {"case": 1, "tools": [], "status": "PENDING", "observed_result": null},
+    {"case": 2, "tools": ["search", "fetch"], "status": "PENDING", "observed_result": null},
+    {"case": 3, "tools": [], "status": "PENDING", "observed_result": null}
+  ],
+  "walkthrough_recording": "Not created; do not submit until an accessible real recording is supplied",
+  "notes": "Structural package validation is separate from review readiness. No conversational test, identity verification, publication approval, or domain challenge is claimed complete."
+}

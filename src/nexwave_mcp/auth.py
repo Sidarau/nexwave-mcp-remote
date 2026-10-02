@@ -1,7 +1,8 @@
-"""Operator OAuth for nexwave-mcp-remote — adapted from zeug-desk-mcp auth.py.
+"""Operator OAuth for Try Day Club — adapted from zeug-desk-mcp auth.py.
 
 The ops server (/ops/mcp) is gated by OAuth 2.1 (DCR + PKCE) with a
-passphrase login gate. Profiles come from NEXWAVE_OAUTH_PROFILES JSON;
+operator email/password login gate. Compatibility profiles come from
+TDC_OAUTH_PROFILES (or the NEXWAVE_OAUTH_PROFILES alias);
 identity — never the client — decides scopes.
 
 Levels
@@ -178,10 +179,10 @@ class OpsOAuthProvider(InMemoryOAuthProvider):
 
 
 def build_ops_auth(base_url: str) -> OpsOAuthProvider:
-    profiles_json = os.environ.get("NEXWAVE_OAUTH_PROFILES", "")
+    profiles_json = os.environ.get("TDC_OAUTH_PROFILES") or os.environ.get("NEXWAVE_OAUTH_PROFILES", "")
     if not profiles_json:
         raise RuntimeError(
-            "NEXWAVE_OAUTH_PROFILES required — JSON like "
+            "TDC_OAUTH_PROFILES required (NEXWAVE_OAUTH_PROFILES alias accepted) — JSON like "
             '{"alex": {"secret": "…", "level": "owner"}, '
             '"mo": {"secret": "…", "level": "ops"}}')
     profiles = {k.strip().lower(): v for k, v in json.loads(profiles_json).items()}

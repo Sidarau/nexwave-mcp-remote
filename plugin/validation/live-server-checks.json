@@ -1,0 +1,23 @@
+{
+  "serverInfo": {
+    "name": "trydayclub",
+    "version": "4.0.3",
+    "websiteUrl": "https://trydayclub.com",
+    "icons": [
+      {
+        "src": "https://trydayclub.com/app-icon.svg",
+        "mimeType": "image/svg+xml",
+        "sizes": [
+          "any"
+        ]
+      }
+    ]
+  },
+  "checks": [
+    "current-domain fleet links",
+    "default own-insurance quote",
+    "unavailable full coverage rejected",
+    "local guide search current URLs",
+    "delivery guide fetch current brand/source"
+  ]
+}
