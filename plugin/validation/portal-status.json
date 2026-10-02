@@ -1,0 +1,14 @@
+{
+  "checkedAt": "2026-10-02T00:28:00Z",
+  "organization": "Zeug Lab",
+  "project": "Zeug Ops",
+  "existingPluginVisible": false,
+  "uploadCompleted": false,
+  "submissionCompleted": false,
+  "publicationCompleted": false,
+  "blocker": "The portal requires a verified developer identity before create/upload. Organization settings shows Individual Start and Business Start, neither verified.",
+  "ownerStep": "Complete the appropriate Individual or Business verification in Organization settings > General > Verifications, then continue the prepared package upload.",
+  "googleVerificationIsSeparate": true,
+  "conversationCasesObserved": false,
+  "walkthroughAvailable": false
+}

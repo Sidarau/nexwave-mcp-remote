@@ -1,5 +1,5 @@
 {
-  "checked_at_utc": "2026-10-02T00:06:51.728828+00:00",
+  "checked_at_utc": "2026-10-02T00:28:42.302220+00:00",
   "package_validation": "PASS",
   "canonical_schemas": "Draft 2020-12 validation passed for plugin.json and mcp.json",
   "openai_constraints": "Documented listing, case, path, icon, color, URL, and public-surface assertions passed",

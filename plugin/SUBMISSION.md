@@ -45,3 +45,9 @@ For an existing plugin, the current update flow does not support changing the co
 - [Agent Plugins MCP schema](https://agent-plugins.org/schemas/1.0.0/mcp.schema.json)
 
 Checked on October 1, 2026. Dashboard findings remain authoritative for acceptance.
+
+## Actual portal and production check, October 1
+
+The owner's Personal organization and Zeug Lab / Zeug Ops showed no existing plugin entry. The attempted upload was stopped **before file selection** by “You need a verified developer identity before you can create or upload a plugin.” Zeug Lab organization settings offers Individual and Business verification, both at Start. No ZIP was uploaded, draft created, domain challenge issued, or legal attestation submitted. See `validation/portal-status.json`. Google Business Profile verification is separate.
+
+The prepared ZIP remains locally validated. The updated live server passed ten public transport checks, ten website/icon/owner-OAuth checks, and five canonical-domain/policy checks. The website crawl returned66 pages, including17 rental and14 delivery pages, with zero old public branding. These are protocol checks; all conversational review cases and the actual walkthrough remain pending.
