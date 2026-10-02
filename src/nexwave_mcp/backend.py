@@ -192,7 +192,7 @@ class SiteIndex:
                             for _ in range(4):
                                 if not _public_url(url):
                                     return None
-                                r = await c.get(url)
+                                r = await c.get(url, follow_redirects=False)
                                 if r.is_redirect:
                                     url = urljoin(str(r.url), r.headers.get("location", ""))
                                     continue
